@@ -23,3 +23,16 @@ def test_pesquisar_evidencias_falha_graciosamente():
     with patch("veritas.agentes.pesquisador._exec_react_loop", side_effect=Exception("API fora")):
         result = pesquisar_evidencias(claim)
     assert result == []
+
+
+def test_pesquisar_evidencias_demo_desemprego_zero():
+    claim = ClaimExtraida(
+        texto="o desemprego no Brasil caiu para zero em 2024",
+        checavel=True,
+        confianca=0.98,
+    )
+
+    result = pesquisar_evidencias(claim)
+
+    assert len(result) == 2
+    assert {e.fonte for e in result} == {"IBGE / PNAD Continua", "Agencia Brasil"}

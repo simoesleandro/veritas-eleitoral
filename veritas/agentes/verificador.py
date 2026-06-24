@@ -2,11 +2,16 @@ from pathlib import Path
 
 from core.llm import gerar_resposta
 from core.modelos import ClaimExtraida, Evidencia, ResultadoVerificacao
+from veritas.demo import verificacao_demo
 
 _PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "verificador.txt"
 
 
 def verificar_claim(claim: ClaimExtraida, evidencias: list[Evidencia]) -> ResultadoVerificacao:
+    demo = verificacao_demo(claim, evidencias)
+    if demo:
+        return demo
+
     prompt_sistema = _PROMPT_PATH.read_text(encoding="utf-8")
     evidencias_str = "\n".join(
         f"- [{e.fonte}] {e.trecho} (url: {e.url or 'n/a'})" for e in evidencias

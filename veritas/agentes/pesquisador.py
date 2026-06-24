@@ -6,6 +6,7 @@ from typing import Callable
 
 from core.llm import gerar_resposta
 from core.modelos import ClaimExtraida, Evidencia
+from veritas.demo import evidencias_demo
 from veritas.ferramentas.base_fatos import buscar_factcheck
 from veritas.ferramentas.ibge import buscar_ibge
 from veritas.ferramentas.tse import buscar_tse
@@ -31,6 +32,10 @@ MAX_ITERACOES = 6
 
 
 def pesquisar_evidencias(claim: ClaimExtraida) -> list[Evidencia]:
+    demo = evidencias_demo(claim)
+    if demo:
+        return demo
+
     try:
         return _exec_react_loop(claim)
     except Exception as e:

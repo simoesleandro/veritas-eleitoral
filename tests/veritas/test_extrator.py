@@ -26,3 +26,13 @@ def test_extrair_claims_filtrar_nao_checaveis_opicional():
         result = extrair_claims("discurso", apenas_checaveis=True)
     assert len(result) == 1
     assert result[0].checavel is True
+
+
+def test_extrair_claims_demo_desemprego_zero_sem_llm():
+    result = extrair_claims(
+        "O candidato afirmou que o desemprego no Brasil caiu para zero em 2024.",
+        apenas_checaveis=True,
+    )
+
+    assert len(result) == 1
+    assert result[0].texto == "o desemprego no Brasil caiu para zero em 2024"
