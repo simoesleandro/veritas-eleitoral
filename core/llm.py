@@ -154,10 +154,6 @@ def _inline_pydantic_refs(schema: dict) -> dict:
                     return _resolve(inlined)
             result = {}
             for k, v in node.items():
-                if k in _GOOGLE_AI_FORBIDDEN_FIELDS:
-                    continue
-                if k == "$defs":
-                    continue
                 if k == "anyOf" and isinstance(v, list):
                     # anyOf [{type: string}, {type: null}] -> pick first non-null
                     non_null = [
@@ -169,6 +165,10 @@ def _inline_pydantic_refs(schema: dict) -> dict:
                         if isinstance(resolved, dict):
                             result.update(resolved)
                         continue
+                if k in _GOOGLE_AI_FORBIDDEN_FIELDS:
+                    continue
+                if k == "$defs":
+                    continue
                 result[k] = _resolve(v)
             return result
         if isinstance(node, list):

@@ -30,3 +30,20 @@ def test_gerar_dossie_md_multiplas_checagens():
     ]
     md = gerar_dossie_md("ctx", claims)
     assert md.count("### Claim") >= 2
+
+
+def test_gerar_dossie_md_tolera_veredito_ausente():
+    claim = ClaimExtraida(texto="claim incompleta", checavel=True, confianca=0.7)
+    rv = ResultadoVerificacao.model_construct(
+        veredito=None,
+        evidencias=[],
+        fontes_independentes=0,
+        confianca=0.2,
+        justificativa="Resposta incompleta da IA.",
+        contraposicao_sugerida="Revisar manualmente.",
+    )
+
+    md = gerar_dossie_md("ctx", [(claim, rv)])
+
+    assert "SEM_CONTEXTO" in md
+    assert "claim incompleta" in md

@@ -224,6 +224,22 @@ def _walk_for_forbidden(node, path=""):
     return found
 
 
+def _walk_for_empty_property_schemas(node, path=""):
+    found = []
+    if isinstance(node, dict):
+        properties = node.get("properties")
+        if isinstance(properties, dict):
+            for name, schema in properties.items():
+                if schema == {}:
+                    found.append(f"{path}.properties.{name}")
+        for k, v in node.items():
+            found.extend(_walk_for_empty_property_schemas(v, f"{path}.{k}"))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            found.extend(_walk_for_empty_property_schemas(v, f"{path}[{i}]"))
+    return found
+
+
 def test_gerar_resposta_schema_strips_google_ai_forbidden_fields(monkeypatch):
     """Schema enviado ao Gemini nao pode conter title, default, anyOf, etc.
 
@@ -342,6 +358,10 @@ def test_gerar_resposta_real_call_with_veritas_schema(monkeypatch):
     forbidden_found = _walk_for_forbidden(raw)
     assert forbidden_found == [], (
         f"Schema _ListaClaims contem campos proibidos: {forbidden_found}"
+    )
+    empty_properties = _walk_for_empty_property_schemas(raw)
+    assert empty_properties == [], (
+        f"Schema _ListaClaims contem propriedades sem type: {empty_properties}"
     )
 
     # Validar que o resultado foi parseado corretamente

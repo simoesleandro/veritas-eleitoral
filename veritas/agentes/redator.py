@@ -13,12 +13,13 @@ def gerar_dossie_md(conteudo: str, checagens: list[tuple[ClaimExtraida, Resultad
     linhas = ["# Dossie Veritas", ""]
     linhas.extend([f"**Conteudo analisado:** {conteudo}", ""])
     linhas.extend([f"**Total de checagens:** {len(checagens)}", ""])
-    falsos = sum(1 for _, rv in checagens if rv.veredito == "falso")
+    falsos = sum(1 for _, rv in checagens if (rv.veredito or "sem_contexto") == "falso")
     linhas.extend([f"**Vereditos falsos:** {falsos}", ""])
     linhas.extend(["---", ""])
     for i, (claim, rv) in enumerate(checagens, 1):
-        emoji = _VEREDITO_EMOJI.get(rv.veredito, "[?]")
-        linhas.extend([f"### Claim {i}: {emoji} {rv.veredito.upper()}", ""])
+        veredito = rv.veredito or "sem_contexto"
+        emoji = _VEREDITO_EMOJI.get(veredito, "[?]")
+        linhas.extend([f"### Claim {i}: {emoji} {veredito.upper()}", ""])
         linhas.extend([f"**Afirmacao:** {claim.texto}", ""])
         linhas.extend([f"**Confianca:** {rv.confianca:.0%} (fontes independentes: {rv.fontes_independentes})", ""])
         linhas.extend([f"**Justificativa:** {rv.justificativa}", ""])
