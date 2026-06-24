@@ -1,0 +1,112 @@
+import json
+import logging
+from typing import Any
+
+from core.db import get_db
+from core.modelos import Alerta
+from core.notifier import enviar_alerta
+from veritas.pipeline import rodar_veritas, VeritasState
+from veritas.seed_base import seed_base_fatos
+
+logger = logging.getLogger(__name__)
+
+AD_HOC_MENCAO_TEXTO = "[ad-hoc] Veritas check"
+
+
+def job_veritas_check(payload: dict[str, Any]) -> dict:
+    conteudo = payload.get("conteudo", "")
+    mencao_id = payload.get("mencao_id")
+    state = rodar_veritas(conteudo, mencao_id=mencao_id)
+    _salvar_checagens(state, mencao_id)
+    _enviar_alertas_se_falso(state)
+    return {"status": state["status"], "dossie_md": state.get("dossie_md")}
+
+
+def job_veritas_seed(payload: dict[str, Any]) -> dict:
+    return seed_base_fatos()
+
+
+def job_veritas_atualiza_base(payload: dict[str, Any]) -> dict:
+    return seed_base_fatos()
+
+
+def _get_or_create_ad_hoc_mencao_id() -> int:
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT id FROM mencoes WHERE texto=? LIMIT 1",
+            (AD_HOC_MENCAO_TEXTO,),
+        ).fetchone()
+        if row:
+            return row["id"]
+        fonte = conn.execute("SELECT id FROM fontes ORDER BY id LIMIT 1").fetchone()
+        if not fonte:
+            cursor = conn.execute(
+                """INSERT INTO fontes (tipo, identificador, nome, coletor, config)
+                   VALUES (?, ?, ?, ?, ?)""",
+                ("portal", "manual", "Entrada manual", "manual", "{}"),
+            )
+            fonte_id = cursor.lastrowid
+        else:
+            fonte_id = fonte["id"]
+
+        candidato = conn.execute("SELECT id FROM candidatos ORDER BY id LIMIT 1").fetchone()
+        if not candidato:
+            cursor = conn.execute(
+                """INSERT INTO candidatos (nome, cargo, partido, alianca, eh_proprio, monitorar_veritas)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                ("Claim avulsa", "nao informado", None, None, 0, 1),
+            )
+            candidato_id = cursor.lastrowid
+        else:
+            candidato_id = candidato["id"]
+
+        cursor = conn.execute(
+            """INSERT INTO mencoes (fonte_id, candidato_id, texto, autor, autor_id, timestamp, url, metricas, hash_conteudo)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (fonte_id, candidato_id, AD_HOC_MENCAO_TEXTO, "sistema", "0",
+             "1970-01-01T00:00:00", "", "{}", "ad-hoc-veritas"),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def _salvar_checagens(state: VeritasState, mencao_id: int | None) -> None:
+    if mencao_id is None:
+        mencao_id = _get_or_create_ad_hoc_mencao_id()
+    conn = get_db()
+    try:
+        for claim, rv in state.get("checagens", []):
+            cursor = conn.execute(
+                """INSERT INTO afirmacoes (mencao_id, texto, sujeito, predicado, checavel, confianca_extracao)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (mencao_id, claim.texto, claim.sujeito, claim.predicado,
+                 int(claim.checavel), claim.confianca),
+            )
+            afirmacao_id = cursor.lastrowid
+            conn.execute(
+                """INSERT INTO checagens
+                   (afirmacao_id, veredito, evidencias, fontes_independentes, confianca, justificativa, contraposicao_sugerida, modelo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (afirmacao_id, rv.veredito,
+                 json.dumps([e.model_dump() for e in rv.evidencias], ensure_ascii=False),
+                 rv.fontes_independentes, rv.confianca, rv.justificativa,
+                 rv.contraposicao_sugerida, "gemini"),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _enviar_alertas_se_falso(state: VeritasState) -> None:
+    for claim, rv in state.get("checagens", []):
+        if rv.veredito in ("falso", "enganoso"):
+            alerta = Alerta(
+                modulo="veritas",
+                severidade="alto" if rv.veredito == "falso" else "medio",
+                titulo=f"Claim {rv.veredito}: {claim.texto[:80]}",
+                payload={"veredito": rv.veredito, "contraposicao": rv.contraposicao_sugerida},
+            )
+            enviar_alerta(alerta)

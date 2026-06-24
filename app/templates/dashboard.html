@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Veritas Eleitoral{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div class="page-eyebrow">Visão Geral</div>
+    <h1 class="page-title">Dashboard operacional</h1>
+    <p class="page-subtitle">Estado em tempo real das checagens eleitorais. Claims, evidências, vereditos e alertas em um fluxo simples de auditoria.</p>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi">
+        <div class="kpi-label">Menções coletadas</div>
+        <div class="kpi-value">{{ kpi.mencoes }}</div>
+        <div class="kpi-trend">em {{ kpi.fontes }} fonte{{ '' if kpi.fontes == 1 else 's' }} ativa{{ '' if kpi.fontes == 1 else 's' }}</div>
+    </div>
+    <div class="kpi success">
+        <div class="kpi-label">Checagens Veritas</div>
+        <div class="kpi-value">{{ kpi.checagens }}</div>
+        <div class="kpi-trend up">{{ kpi.falsos }} falso{{ '' if kpi.falsos == 1 else 's' }} detectado{{ '' if kpi.falsos == 1 else 's' }}</div>
+    </div>
+    <div class="kpi warning">
+        <div class="kpi-label">Alertas enviados</div>
+        <div class="kpi-value">{{ kpi.alertas }}</div>
+        <div class="kpi-trend">via Telegram</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-label">Fila de jobs</div>
+        <div class="kpi-value">{{ kpi.queue_pending }}</div>
+        <div class="kpi-trend">pendente{{ '' if kpi.queue_pending == 1 else 's' }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <div class="section-title">Fluxo de checagem</div>
+        <a href="{{ url_for('veritas.lista') }}" class="section-link">Abrir Veritas →</a>
+    </div>
+    <div class="module-grid">
+        <a href="{{ url_for('veritas.lista') }}" class="module-card">
+            <div class="module-icon veritas">✓</div>
+            <div class="module-title">Veritas Eleitoral</div>
+            <div class="module-desc">Fact-checker agentico para claims políticos. Extrai afirmações, pesquisa evidências públicas, classifica o veredito e registra a justificativa.</div>
+            <div class="module-stats">
+                <span><strong>{{ kpi.checagens }}</strong> checagens</span>
+                <span><strong>{{ kpi.veritas_falsos }}</strong> falsos</span>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <div class="section-title">Atividade recente</div>
+        <a href="{{ url_for('veritas.lista') }}" class="section-link">Ver todas as checagens →</a>
+    </div>
+    {% if recent %}
+    <div class="activity-list">
+        {% for ch in recent %}
+        <a href="{{ url_for('veritas.detalhe', checagem_id=ch.id) }}" class="activity-item">
+            <div class="activity-icon {{ ch.veredito }}">
+                {% if ch.veredito == 'falso' %}✕{% elif ch.veredito == 'verdadeiro' %}✓{% elif ch.veredito == 'enganoso' %}!{% else %}?{% endif %}
+            </div>
+            <div class="activity-body">
+                <div class="activity-text">{{ ch.claim }}</div>
+                <div class="activity-meta">
+                    <span class="badge {{ ch.veredito }}">{{ ch.veredito }}</span>
+                    <span>{{ ch.criado_em }}</span>
+                    <span>{{ "%.0f"|format(ch.confianca * 100) }}% confiança</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="activity-empty">
+        Nenhuma checagem registrada ainda. <a href="{{ url_for('veritas.lista') }}">Submeter uma checagem →</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <div class="section-header">
+        <div class="section-title">Atividade do sistema</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+        <div style="padding: 0.75rem 1rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Base de fatos</div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 0.25rem; font-variant-numeric: tabular-nums;">{{ kpi.factchecks_rag }} <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">embeddings</span></div>
+        </div>
+        <div style="padding: 0.75rem 1rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Briefings</div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 0.25rem; font-variant-numeric: tabular-nums;">{{ kpi.briefings }} <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">gerados</span></div>
+        </div>
+        <div style="padding: 0.75rem 1rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Scheduler</div>
+            <div style="font-size: 18px; font-weight: 600; margin-top: 0.25rem; font-variant-numeric: tabular-nums;">{{ kpi.scheduler_runs }} <span style="color: var(--text-muted); font-size: 12px; font-weight: 400;">execuções</span></div>
+        </div>
+        <div style="padding: 0.75rem 1rem; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md);">
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Último job</div>
+            <div style="font-size: 13px; font-weight: 600; margin-top: 0.25rem; color: var(--text-muted);">{{ kpi.last_job or '—' }}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
