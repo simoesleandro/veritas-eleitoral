@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, Response, jsonify, abort, session, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, Response, jsonify, abort
 
 from core.db import get_db
 from core.fila import enqueue
@@ -61,9 +61,6 @@ def lista():
 
 @bp.route("/novo", methods=["GET"])
 def novo_form():
-    if current_app.config.get("WTF_CSRF_ENABLED", True):
-        from flask_wtf.csrf import generate_csrf
-        session["csrf_token"] = generate_csrf()
     return render_template("veritas_novo.html")
 
 
