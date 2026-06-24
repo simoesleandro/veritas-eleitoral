@@ -4,6 +4,12 @@ MVP de fact-checking eleitoral assistido por IA. O projeto recebe uma afirmacao 
 
 Este repositorio nasceu como uma extracao enxuta do EleitorAI: a ideia original era ampla demais para ficar apresentavel como projeto de portfolio. Aqui o foco e um produto menor, testavel e facil de explicar para recrutadores.
 
+## Demo
+
+![Checagem demo do Veritas Eleitoral](docs/assets/veritas-demo-check.png)
+
+A demo acima usa uma claim controlada: "O candidato afirmou que o desemprego no Brasil caiu para zero em 2024." O fluxo extrai a afirmacao, associa evidencias, classifica o veredito como `falso` e gera uma contraposicao sugerida.
+
 ## Por que importa
 
 Campanhas, jornalistas locais e equipes civicas precisam responder rapidamente a informacoes falsas ou enganosas. O Veritas Eleitoral organiza esse fluxo em uma aplicacao web simples: entrada manual da claim, processamento em fila, analise por IA, evidencias auditaveis e historico de checagens.
@@ -12,6 +18,7 @@ Campanhas, jornalistas locais e equipes civicas precisam responder rapidamente a
 
 - Dashboard com KPIs de mencoes, checagens, alertas e fila de jobs.
 - Formulario para submeter claims eleitorais.
+- Modo demo deterministico para apresentacao e screenshots.
 - Pipeline Veritas com extracao de afirmacoes, pesquisa de evidencias e classificacao de veredito.
 - Base SQLite com extensao vetorial `sqlite-vec` para apoio a RAG.
 - Worker separado para processar checagens em background.
